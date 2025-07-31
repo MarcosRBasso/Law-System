@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\LawsuitController;
 use App\Http\Controllers\Api\DocumentController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\DeadlineController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\RoleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,11 +30,16 @@ Route::prefix('auth')->group(function () {
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
     
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('user', [AuthController::class, 'user']);
+        Route::get('profile', [AuthController::class, 'profile']);
         Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::post('logout-all', [AuthController::class, 'logoutAll']);
         Route::put('profile', [AuthController::class, 'updateProfile']);
         Route::post('change-password', [AuthController::class, 'changePassword']);
+        Route::post('enable-2fa', [AuthController::class, 'enableTwoFactor']);
+        Route::post('verify-2fa', [AuthController::class, 'verifyTwoFactor']);
+        Route::post('disable-2fa', [AuthController::class, 'disableTwoFactor']);
+        Route::get('sessions', [AuthController::class, 'sessions']);
+        Route::delete('sessions/{tokenId}', [AuthController::class, 'revokeSession']);
     });
 });
 
@@ -42,6 +49,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
     Route::get('dashboard/widgets/{widget}', [DashboardController::class, 'widget']);
+    
+    // Roles and Permissions
+    Route::apiResource('roles', RoleController::class);
+    Route::prefix('roles')->group(function () {
+        Route::get('permissions', [RoleController::class, 'permissions']);
+        Route::post('{role}/permissions', [RoleController::class, 'assignPermissions']);
+        Route::get('statistics', [RoleController::class, 'statistics']);
+    });
     
     // Clients
     Route::apiResource('clients', ClientController::class);
