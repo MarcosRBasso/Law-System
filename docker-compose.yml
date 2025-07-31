@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: juridico-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - juridico-network
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+
+  nginx:
+    image: nginx:alpine
+    container_name: juridico-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+      - "8443:443"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - juridico-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: juridico-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: juridico_system
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: password
+      MYSQL_USER: juridico
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - juridico-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: juridico-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - juridico-network
+
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    container_name: juridico-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - juridico-network
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: juridico-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    networks:
+      - juridico-network
+    depends_on:
+      - db
+      - redis
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: juridico-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    command: php artisan schedule:work
+    networks:
+      - juridico-network
+    depends_on:
+      - db
+      - redis
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: juridico-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - juridico-network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: juridico-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - juridico-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: juridico-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - juridico-network
+
+networks:
+  juridico-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  elasticsearch_data:
+  grafana_data:

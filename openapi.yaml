@@ -1,0 +1,963 @@
+openapi: 3.0.3
+info:
+  title: Sistema de Gestão para Escritórios de Advocacia
+  description: |
+    API completa para sistema de gestão jurídica com funcionalidades de:
+    - CRM para clientes
+    - Gestão de processos jurídicos
+    - Controle de documentos
+    - Time tracking e faturamento
+    - Gestão financeira
+    - Calendário e prazos
+    - Relatórios e dashboards
+  version: 1.0.0
+  contact:
+    name: Suporte Técnico
+    email: suporte@juridico.example.com
+    url: https://juridico.example.com/suporte
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.juridico.example.com/api
+    description: Servidor de produção
+  - url: https://staging-api.juridico.example.com/api
+    description: Servidor de homologação
+  - url: http://localhost:8000/api
+    description: Servidor de desenvolvimento
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: Autenticação e autorização
+  - name: Clients
+    description: Gestão de clientes (CRM)
+  - name: Lawsuits
+    description: Gestão de processos jurídicos
+  - name: Documents
+    description: Gestão de documentos
+  - name: Time Tracking
+    description: Controle de horas
+  - name: Invoices
+    description: Faturamento
+  - name: Financial
+    description: Gestão financeira
+  - name: Calendar
+    description: Calendário e eventos
+  - name: Deadlines
+    description: Prazos processuais
+  - name: Reports
+    description: Relatórios e dashboards
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Mensagem de erro
+        errors:
+          type: object
+          description: Detalhes dos erros de validação
+      required:
+        - message
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        oab_number:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [individual, company]
+        name:
+          type: string
+        document:
+          type: string
+          description: CPF ou CNPJ
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          maxLength: 2
+          nullable: true
+        zip_code:
+          type: string
+          maxLength: 10
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        profession:
+          type: string
+          nullable: true
+        marital_status:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Lawsuit:
+      type: object
+      properties:
+        id:
+          type: integer
+        number:
+          type: string
+          description: Número do processo
+        client_id:
+          type: integer
+        responsible_lawyer_id:
+          type: integer
+        court_id:
+          type: integer
+        subject:
+          type: string
+        description:
+          type: string
+        value:
+          type: number
+          format: decimal
+          nullable: true
+        status:
+          type: string
+          enum: [active, suspended, finished, archived]
+        phase:
+          type: string
+          enum: [knowledge, execution, appeal, other]
+        instance:
+          type: string
+          enum: [first, second, superior, supreme]
+        distribution_date:
+          type: string
+          format: date
+        estimated_end_date:
+          type: string
+          format: date
+          nullable: true
+        actual_end_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        lawsuit_id:
+          type: integer
+          nullable: true
+        client_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        file_path:
+          type: string
+        file_name:
+          type: string
+        file_size:
+          type: integer
+        mime_type:
+          type: string
+        version:
+          type: integer
+        is_template:
+          type: boolean
+        template_data:
+          type: object
+          nullable: true
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        lawsuit_id:
+          type: integer
+          nullable: true
+        client_id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+        duration_minutes:
+          type: integer
+          nullable: true
+        hourly_rate:
+          type: number
+          format: decimal
+        total_amount:
+          type: number
+          format: decimal
+          nullable: true
+        is_billable:
+          type: boolean
+        is_billed:
+          type: boolean
+        date:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        client_id:
+          type: integer
+        invoice_number:
+          type: string
+        issue_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        subtotal:
+          type: number
+          format: decimal
+        tax_amount:
+          type: number
+          format: decimal
+        discount_amount:
+          type: number
+          format: decimal
+        total_amount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Fazer login no sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  expires_in:
+                    type: integer
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Fazer logout do sistema
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /clients:
+    get:
+      tags:
+        - Clients
+      summary: Listar clientes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [individual, company]
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Client'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags:
+        - Clients
+      summary: Criar novo cliente
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [individual, company]
+                name:
+                  type: string
+                document:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                  maxLength: 2
+                zip_code:
+                  type: string
+                  maxLength: 10
+                birth_date:
+                  type: string
+                  format: date
+                profession:
+                  type: string
+                marital_status:
+                  type: string
+                notes:
+                  type: string
+              required:
+                - type
+                - name
+                - document
+      responses:
+        '201':
+          description: Cliente criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Client'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /clients/{id}:
+    get:
+      tags:
+        - Clients
+      summary: Obter detalhes do cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalhes do cliente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+        '404':
+          description: Cliente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Clients
+      summary: Atualizar cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [individual, company]
+                name:
+                  type: string
+                document:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                  maxLength: 2
+                zip_code:
+                  type: string
+                  maxLength: 10
+                birth_date:
+                  type: string
+                  format: date
+                profession:
+                  type: string
+                marital_status:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Cliente atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Client'
+
+  /lawsuits:
+    get:
+      tags:
+        - Lawsuits
+      summary: Listar processos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: client_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, finished, archived]
+        - name: responsible_lawyer_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de processos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lawsuit'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags:
+        - Lawsuits
+      summary: Criar novo processo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                client_id:
+                  type: integer
+                responsible_lawyer_id:
+                  type: integer
+                court_id:
+                  type: integer
+                subject:
+                  type: string
+                description:
+                  type: string
+                value:
+                  type: number
+                  format: decimal
+                status:
+                  type: string
+                  enum: [active, suspended, finished, archived]
+                phase:
+                  type: string
+                  enum: [knowledge, execution, appeal, other]
+                instance:
+                  type: string
+                  enum: [first, second, superior, supreme]
+                distribution_date:
+                  type: string
+                  format: date
+                estimated_end_date:
+                  type: string
+                  format: date
+              required:
+                - number
+                - client_id
+                - responsible_lawyer_id
+                - court_id
+                - subject
+                - distribution_date
+      responses:
+        '201':
+          description: Processo criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Lawsuit'
+
+  /time-entries:
+    get:
+      tags:
+        - Time Tracking
+      summary: Listar entradas de tempo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+        - name: lawsuit_id
+          in: query
+          schema:
+            type: integer
+        - name: client_id
+          in: query
+          schema:
+            type: integer
+        - name: is_billable
+          in: query
+          schema:
+            type: boolean
+        - name: is_billed
+          in: query
+          schema:
+            type: boolean
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de entradas de tempo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimeEntry'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /time-entries/start:
+    post:
+      tags:
+        - Time Tracking
+      summary: Iniciar cronômetro
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                lawsuit_id:
+                  type: integer
+                client_id:
+                  type: integer
+                hourly_rate:
+                  type: number
+                  format: decimal
+              required:
+                - description
+                - hourly_rate
+      responses:
+        '201':
+          description: Cronômetro iniciado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/TimeEntry'
+
+  /invoices:
+    get:
+      tags:
+        - Invoices
+      summary: Listar faturas
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: client_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, sent, paid, overdue, cancelled]
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de faturas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /financial/dashboard:
+    get:
+      tags:
+        - Financial
+      summary: Obter dados do dashboard financeiro
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Dados do dashboard financeiro
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_revenue:
+                        type: number
+                        format: decimal
+                      total_expenses:
+                        type: number
+                        format: decimal
+                      net_profit:
+                        type: number
+                        format: decimal
+                      outstanding_invoices:
+                        type: number
+                        format: decimal
+                      overdue_invoices:
+                        type: number
+                        format: decimal
+                      cash_flow:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            income:
+                              type: number
+                              format: decimal
+                            expenses:
+                              type: number
+                              format: decimal
+
+  /health:
+    get:
+      tags:
+        - System
+      summary: Verificar saúde do sistema
+      responses:
+        '200':
+          description: Sistema funcionando normalmente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 1.0.0
